@@ -31,6 +31,7 @@ minY, maxY = -1.0, 0.0
 res = 64
 
 max_pressure = 1.
+storage = 1
 
 mesh = uw.meshing.UnstructuredSimplexBox(minCoords=(minX, minY), maxCoords=(maxX, maxY), cellSize = 1/res, qdegree=3)
 
@@ -62,7 +63,7 @@ if uw.mpi.size == 1:
     pv.global_theme.background = "white"
     pv.global_theme.window_size = [750, 750]
     pv.global_theme.antialiasing = 'ssaa'
-    pv.global_theme.jupyter_backend = "panel"
+    pv.global_theme.jupyter_backend = "trame"
     pv.global_theme.smooth_shading = True
 
     mesh.vtk("tmp_mesh.vtk")
@@ -181,7 +182,7 @@ if uw.mpi.size == 1:
     pv.global_theme.background = "white"
     pv.global_theme.window_size = [1250, 750]
     pv.global_theme.antialiasing = True
-    pv.global_theme.jupyter_backend = "panel"
+    pv.global_theme.jupyter_backend = "trame"
     pv.global_theme.smooth_shading = True
 
     mesh.vtk("tmp_mesh.vtk")
@@ -237,12 +238,40 @@ if uw.mpi.size == 1:
 
 
 # %%
-# set up interpolation coordinates
-ycoords = np.linspace(minY + 0.001 * (maxY - minY), maxY - 0.001 * (maxY - minY), 100)
-xcoords = np.full_like(ycoords, -1)
-xy_coords = np.column_stack([xcoords, ycoords])
 
-pressure_interp = uw.function.evaluate(p_soln.sym[0], xy_coords)
+def analytic(in_val):
+    qp = coeff * k1 / thermalDiff * storage * (max_pressure)
+    
+    if qp == 0.:
+        return in_val
+    else:
+        return (np.exp(qp*in_val) - 1.)/(np.exp(-qp) - 1.)
+
+
+# %%
+# set up interpolation coordinates
+import matplotlib.pyplot as plt
+n = 50
+y_coords = np.arange(minY + (maxY - minY)/n, maxY, (maxY - minY)/n)
+
+fig, ax = plt.subplots(dpi = 100) 
+for x_pos in [0., 1., 2.]:
+    x_coords = np.full_like(y_coords, x_pos)
+    xy_coords = np.column_stack([x_coords, y_coords])
+
+    t_eval = uw.function.evaluate(t_soln.sym[0], xy_coords)
+    ax.plot(t_eval, y_coords, "-", label = f"x = {x_pos}")
+
+ax.legend()
+
+# # analytical value 
+# n = 10
+# y_coords = np.arange(minY + (maxY - minY)/n, maxY, (maxY - minY)/n)
+# for x_pos in [0., 2.]:
+
+#     t_analytical = analytic(y_coords)
+    #ax.plot(t_analytical, y_coords, "o", label = "Analytical")
+# pressure_interp = uw.function.evaluate(p_soln.sym[0], xy_coords)
 
 
 # %%
